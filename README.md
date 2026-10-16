@@ -1,7 +1,7 @@
 # ReachInbox Email Scheduler
 
 A full-stack email scheduling system. Users compose an email, add recipients (manually or via CSV upload),
-pick a send time, and the backend delivers each email as a BullMQ delayed job — with per-sender hourly
+pick a send time, and the backend delivers each email as a BullMQ delayed job - with per-sender hourly
 rate limiting, idempotent crash-safe workers, Elasticsearch search, and Slack rate-limit alerts.
 
 ## 1. Project Overview & Features
@@ -9,7 +9,7 @@ rate limiting, idempotent crash-safe workers, Elasticsearch search, and Slack ra
 **High-level summary.** The frontend (Next.js) handles login, composing, and browsing scheduled/sent mail.
 The backend (Express) persists batches and jobs in MySQL via Prisma, enqueues one delayed BullMQ job per
 recipient in Redis, and a background worker sends each email through an auto-provisioned Ethereal SMTP
-sender, indexes the result in Elasticsearch, and enforces hourly send quotas. No cron jobs are used anywhere —
+sender, indexes the result in Elasticsearch, and enforces hourly send quotas. No cron jobs are used anywhere -
 scheduling is purely BullMQ delayed jobs backed by Redis AOF persistence.
 
 **Key features.**
@@ -64,12 +64,12 @@ reachinbox-scheduler/
 
 **Directory responsibilities.**
 
-- `backend/src/routes/` — HTTP surface: Google OAuth, Slack OAuth, schedule/list/search emails, list senders.
-- `backend/src/services/` — shared infrastructure clients: BullMQ queue + Redis, Ethereal mailer, Elasticsearch, Slack alerts, Bull Board.
-- `backend/src/workers/` — the background email processor (rate-limit counter, `moveToDelayed`, SMTP send, ES index).
-- `backend/src/scripts/` — local verification tools (`npm run seed/loadtest/idempotency-test`).
-- `backend/prisma/` — data model: one `EmailBatch` (compose action) → many `EmailJob`s (one recipient each).
-- `frontend/app/` — App Router pages; `frontend/lib/` — typed API client and auth state.
+- `backend/src/routes/` - HTTP surface: Google OAuth, Slack OAuth, schedule/list/search emails, list senders.
+- `backend/src/services/` - shared infrastructure clients: BullMQ queue + Redis, Ethereal mailer, Elasticsearch, Slack alerts, Bull Board.
+- `backend/src/workers/` - the background email processor (rate-limit counter, `moveToDelayed`, SMTP send, ES index).
+- `backend/src/scripts/` - local verification tools (`npm run seed/loadtest/idempotency-test`).
+- `backend/prisma/` - data model: one `EmailBatch` (compose action) → many `EmailJob`s (one recipient each).
+- `frontend/app/` - App Router pages; `frontend/lib/` - typed API client and auth state.
 
 ## 4. Prerequisites & Environment Setup
 
@@ -178,21 +178,21 @@ npx prisma generate
 
 **Step 5: Start the local development servers.**
 
-Terminal 1 — backend (API + worker):
+Terminal 1 - backend (API + worker):
 
 ```bash
 cd backend
 npm run dev
 ```
 
-Terminal 2 — frontend:
+Terminal 2 - frontend:
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-Optional — load test data:
+Optional - load test data:
 
 ```bash
 cd backend
