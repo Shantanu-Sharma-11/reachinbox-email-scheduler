@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// User: Authenticated via Google OAuth 2.0
+// Optionally connected to a Slack workspace
+// ─────────────────────────────────────────────
+model User {
+  id               String   @id @default(cuid())
+  googleId         String   @unique
+  email            String   @unique
+  name             String
+  avatarUrl        String?
+
+  // Slack OAuth v2 tokens (nullable until user connects Slack)
+  slackAccessToken  String?  @db.Text
+  slackChannelId    String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  senders          Sender[]
+  emailBatches     EmailBatch[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// Sender: Ethereal SMTP account auto-provisioned
+// per user. A user can have multiple senders.
+// ─────────────────────────────────────────────
+model Sender {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  etherealEmail     String   @unique
+  etherealPassword  String
+  host              String   @default("smtp.ethereal.email")
+  port              Int      @default(587)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  emailBatches      EmailBatch[]
+
+  @@index([userId])
+  @@map("senders")
+}
+
+// ─────────────────────────────────────────────
+// EmailBatch: One compose action = one batch.
+// A batch can target many recipients (EmailJobs).
+// ─────────────────────────────────────────────
+model EmailBatch {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      Sender          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  subject     String
+  body        String          @db.Text
+  scheduledAt DateTime
+
+  // Overall batch status derived from its jobs
+  status      EmailBatchStatus @default(pending)
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  emailJobs   EmailJob[]
+
+  @@index([userId])
+  @@index([senderId])
+  @@index([status])
+  @@map("email_batches")
+}
+
+// ─────────────────────────────────────────────
+// EmailJob: One recipient = one job.
+// BullMQ jobId = "email_${id}" (deterministic, idempotent)
+// ─────────────────────────────────────────────
+model EmailJob {
+  id              String        @id @default(cuid())
+  batchId         String
+  batch           EmailBatch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  recipientEmail  String
+  recipientName   String
+
+  // Worker checks this before sending to prevent duplicate sends
+  status          EmailJobStatus @default(pending)
+
+  scheduledAt     DateTime
+  sentAt          DateTime?
+  errorMessage    String?       @db.Text
+
+  // Stored after successful send; also indexed in Elasticsearch
+  messageId       String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([batchId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("email_jobs")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+enum EmailBatchStatus {
+  pending
+  partial
+  completed
+}
+
+enum EmailJobStatus {
+  pending
+  sent
+  failed
+}
